@@ -8,7 +8,9 @@ authors = [
     { name = "Flet developer", email = "you@example.com" }
 ]
 dependencies = [
-  "flet==0.28.2"
+  "flet==0.28.2",
+  "pandas>=2.2.3",
+  "websockets==12.0",
 ]
 
 [tool.flet]
