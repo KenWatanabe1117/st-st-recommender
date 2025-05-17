@@ -1,14 +1,12 @@
 import flet as ft
-import pandas as pd
-from bayesian_recomender import BayesianRecomender
+from bayesian_recommender import BayesianRecommender
 
-FORM_URL = ""
+FORM_URL = "https://forms.gle/W3YHvCsGCiEvLshQ7"
 CONFIDENCE_THRESHOLD = 0.95
 
 def main(page: ft.Page):
-    recomender = BayesianRecomender()
-    confidence = recomender.get_best_belief()
-    urls = pd.read_csv("storage/data/urls.csv")
+    recommender = BayesianRecommender()
+    confidence = recommender.get_best_belief()
     #ホーム画面の見た目の設定
     home_view = ft.View(
         "/",
@@ -66,17 +64,17 @@ def main(page: ft.Page):
     )
 
     def answer_clicked(question, answer_score, count):
-        nonlocal recomender, confidence
-        best_id, confidence = recomender.update_belief(question, answer_score)
+        nonlocal recommender, confidence
+        best_id, confidence = recommender.update_belief(question, answer_score)
         if confidence >= CONFIDENCE_THRESHOLD:
             page.go(f"/result/{best_id}")
         else:
-            page.go(f"/question/{count+1}")
+            page.go(f"/question/{int(count)+1}")
 
 
     def create_question_view(count):
-        nonlocal recomender, confidence
-        question = recomender.select_best_question()
+        nonlocal recommender, confidence
+        question = recommender.select_best_question()
         return ft.View(
             f"/question/{count}",
             [
@@ -184,16 +182,18 @@ def main(page: ft.Page):
         )
 
     def create_result_view(id):
-        nonlocal urls
-        top_5_ids, song_names, confidences = recomender.recomend_top_k(5)
+        top_5_ids, song_names, confidences = recommender.recommend_top_k(5)
+        top_song_name = song_names[top_5_ids==int(id)][0]
+        urls = recommender.get_urls(top_song_name)
+        keywords = recommender.get_keywords(top_song_name)
         return ft.View(
             f"/result/{id}",
             [
                 ft.AppBar(title = ft.Text(f"あなたへのおすすめの楽曲はこちら！", size=50),
                             bgcolor = ft.Colors.BLUE_400,
                             toolbar_height = 66),
-                ft.Text(f"{song_names[top_5_ids==id]} (おすすめ度 {confidences[top_5_ids==id]}%)", size=50),
-                ft.Text("キーワード\nキーワード、キーワード", size=24),
+                ft.Text(f"{top_song_name} (おすすめ度 {confidences[top_5_ids==int(id)][0]*100:.2f}%)", size=50),
+                ft.Text("キーワード\n" + "、".join(keywords), size=24),
                 ft.ElevatedButton(
                     "YouTubeで見る",
                     color = ft.Colors.RED_400,
@@ -207,7 +207,7 @@ def main(page: ft.Page):
                         icon_size = 24,
                         padding = 10
                     ),
-                    url = urls[urls["SongName"]==song_names[top_5_ids==id]]["YouTube"]
+                    url = urls.at[int(id),"YouTube"]
                 ),
                 ft.ElevatedButton(
                     "Spotifyで聴く",
@@ -222,7 +222,15 @@ def main(page: ft.Page):
                         icon_size = 24,
                         padding = 10
                     ),
-                    url = urls[urls["SongName"]==song_names[top_5_ids==id]]["Spotify"]
+                    url = urls.at[int(id),"Spotify"]
+                ),
+                ft.TextButton(
+                    content = ft.Text("ホームに戻る", size=24, color=ft.Colors.BLUE_400),
+                    on_click = lambda _: page.go("/"),
+                    style = ft.ButtonStyle(
+                        bgcolor = ft.Colors.BLUE_100,
+                        padding = 10
+                    )
                 )
             ]
         )
@@ -233,7 +241,7 @@ def main(page: ft.Page):
         if troute.match("/"):
             page.views.clear()
             page.views.append(home_view)
-            recomender.__init__()
+            recommender.__init__()
         elif troute.match("/question/:count"):
             page.views.append(create_question_view(troute.count))
         elif troute.match("/result/:id"):
@@ -242,7 +250,6 @@ def main(page: ft.Page):
 
     #戻るときの動作
     def view_pop(view):
-        print("view poped")
         page.views.pop()
         top_view = page.views[-1]
         page.go(top_view.route)
