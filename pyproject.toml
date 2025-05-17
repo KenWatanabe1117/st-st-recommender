@@ -10,7 +10,7 @@ authors = [
 dependencies = [
     "flet>=0.28.2",
     "flet-cli>=0.28.2",
-    "numpy>=2.2.5",
+    "numpy>=2.0.2",
     "pandas>=2.2.3",
     "websockets==12.0",
 ]
