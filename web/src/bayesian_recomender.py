@@ -10,9 +10,10 @@ class BayesianRecomender():
 
         self.ANSWER_SCORES = [1.0, 0.5, 0, -0.5, -1.0]
         self.BETA = -1.0
-
-        self.urls = None
     
+    def get_best_belief(self):
+        return np.max(self.belief)
+
     def softmax(self, x):
         e_x = np.exp(x - np.max(x))
         return e_x / e_x.sum()
@@ -21,7 +22,7 @@ class BayesianRecomender():
         alpha = self.df[question].fillna(0)
         self.state += (answer_score - alpha)**2
         self.belief = self.softmax(self.BETA * self.state)
-        return self.df.index[np.argmax(self.belief)], np.max(self.belief)
+        return np.argmax(self.belief), np.max(self.belief)
 
     def information_gain(self, question):
         ent_before = -np.sum(self.belief * np.log(self.belief + 1e-12))
@@ -47,4 +48,4 @@ class BayesianRecomender():
     
     def recomend_top_k(self, k):
         top_k_idx = np.argsort(self.belief)[k-1::-1]
-        return self.df.index[top_k_idx], self.urls.iloc[top_k_idx], np.sort(self.belief)[k-1::-1]
+        return top_k_idx, self.df.index[top_k_idx], np.sort(self.belief)[k-1::-1]
